@@ -21,32 +21,54 @@ class AISpeaker(Button, LED):
         Button.__init__(self, pin=button_pin)
         LED.__init__(self, pin=led_pin)
         GPIO.add_event_callback(self.button_pin, callback=self.listener)
-        # record
-        self.pa = pyaudio.PyAudio()
+        # for record
+        self.pa = None
         self.stream = None
-        self.frames = []
+        self.frames = None
         # check button state
         self.button_pressed = None
 
         while True:
             time.sleep(.01)
 
+    def play(self):
+        wf = wave.open(FILENAME, 'rb')
+        self.pa = pyaudio.PyAudio()
+        self.stream = self.pa.open(
+            format=self.pa.get_format_from_width(wf.getsampwidth()),
+            rate=wf.getframerate(),
+            channels=wf.getnchannels(),
+            output=True
+        )
+
+        data = wf.readframes(CHUNK)
+        while data != b'':
+            self.stream.write(data)
+            data = wf.readframes(CHUNK)
+
+        self.pa.terminate()
+        self.stream.close()
+
     def recording(self):
-        self.stream = self.pa.open(format=FORMAT, rate=SAMPLE_RATE, channels=CHANNELS,
-                                   frames_per_buffer=CHUNK, input=True, stream_callback=self.callback)
+        self.frames = []
+        self.pa = pyaudio.PyAudio()
+        self.stream = self.pa.open(
+            format=FORMAT,
+            rate=SAMPLE_RATE,
+            channels=CHANNELS,
+            frames_per_buffer=CHUNK,
+            input=True,
+            stream_callback=self.callback)
 
     def write_wave_file(self):
         # write .wav file
-        wav_file = wave.open(FILENAME, 'wb')
-        wav_file.setnchannels(CHANNELS)
-        wav_file.setsampwidth(self.pa.get_sample_size(FORMAT))
-        wav_file.setframerate(SAMPLE_RATE)
-        wav_file.writeframes(b''.join(self.frames))
-        wav_file.close()
+        wf = wave.open(FILENAME, 'wb')
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(self.pa.get_sample_size(FORMAT))
+        wf.setframerate(SAMPLE_RATE)
+        wf.writeframes(b''.join(self.frames))
+        wf.close()
 
-    def initialize(self):
-        # initialize audio and stream to next recording
-        self.pa = pyaudio.PyAudio()
         self.stream.stop_stream()
         self.stream.close()
         self.pa.terminate()
@@ -72,10 +94,7 @@ class AISpeaker(Button, LED):
         else:
             self.off()
             self.write_wave_file()
-            self.initialize()
+            # self.play()
             self.send_to_server()
-
-
-
 
 ai_speaker = AISpeaker()
