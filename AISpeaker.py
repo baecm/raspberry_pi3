@@ -52,11 +52,11 @@ class AISpeaker(Button, LED):
         self.pa.terminate()
         self.frames = []
 
-    def send2server(self):
-
+    def send_to_server(self):
+        # TODO: 서버로 .wav 파일 전송
         import os
         os.remove('./tmp.wav')
-        pass
+        # TODO: 서버에서 전송된 결과
 
     def callback(self, in_data, frame_count, time_info, status):
         self.frames.append(in_data)
@@ -73,7 +73,7 @@ class AISpeaker(Button, LED):
             self.off()
             self.write_wave_file()
             self.initialize()
-            self.send2server()
+            self.send_to_server()
 
 
 
